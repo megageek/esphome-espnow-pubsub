@@ -65,35 +65,6 @@ text_sensor:
     id: my_pubsub
     topic: "test/topic"
     payload: "hello world"
-
-## Example: Ethernet with ESP-IDF
-
-```yaml
-esp32:
-  board: wt32-eth01
-  framework:
-    type: esp-idf
-
-ethernet:
-  type: LAN8720
-  mdc_pin: GPIO23
-  mdio_pin: GPIO18
-  clk_mode: GPIO0_IN
-  phy_addr: 1
-  power_pin: GPIO16
-
-external_components:
-  - source: github://megageek/esphome-espnow-pubsub/components/espnow_pubsub
-
-espnow_pubsub:
-  id: my_pubsub
-  channel: 1
-  on_message:
-    - topic: "test/topic"
-      then:
-        - logger.log:
-            format: "Received test/topic: %s"
-            args: ['payload.c_str()']
 ```
 
 ## Logging
@@ -116,26 +87,6 @@ espnow_pubsub:
   - `sent_count_sensor`: Number of messages sent since boot
   - `received_count_sensor`: Number of messages received since boot
 
-## File Structure
-
-- `espnow_pubsub.cpp`/`.h`: C++ implementation and header
-- `__init__.py`: Python integration for ESPHome YAML
-- `README.md`: This documentation
-- `component-tester.yaml`: Example configuration
-
-
-
-## Current Status
-
-- Fully supports ESP32 with ESPHome under both Arduino and ESP-IDF
-- Works with WiFi, Ethernet, or standalone (no network stack)
-- ESP-NOW send/receive is robust in all supported modes
-- MQTT-style wildcard topic matching is implemented for subscriptions (use `+` and `#` in YAML `on_message` topics)
-- Message queue is bounded (16 messages); if full, the oldest message is dropped and a warning is logged
-- ESP-NOW error/status is logged and exposed as a text sensor
-- README and YAML examples are kept up to date with implementation
-- Peer-to-peer (unicast) encrypted ESP-NOW is not supported (broadcast only)
-
 
 ## License
 
@@ -143,6 +94,7 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## Changelog
 
+- 2025-07-26: Uploaded to GitHub
 - 2025-07-25: Robust support for ESP-NOW with WiFi, Ethernet, and standalone (no network stack) under both Arduino and ESP-IDF; automatic WiFi driver enablement for ESP-IDF/Ethernet; improved documentation and YAML examples; ESP-NOW error/status exposed as text sensor; sensor and logging improvements
 - 2025-07-22: MQTT-style wildcard topic matching implemented; documentation and implementation synchronized
 - 2025-07-20: Logging and message handling updated for clarity and safety
