@@ -1,4 +1,3 @@
-
 # ESPHome ESP-NOW PubSub External Component
 
 This component enables MQTT-like pub/sub messaging over ESP-NOW for ESP32 devices in ESPHome. It is designed for broadcast communication, allowing devices to subscribe to topics and receive messages with a topic/payload structure.
@@ -11,17 +10,6 @@ This component enables MQTT-like pub/sub messaging over ESP-NOW for ESP32 device
   - Ethernet only (LAN8720, etc.)
   - Standalone (no WiFi, no Ethernet)
 - **ESP-NOW:** Always uses broadcast (no peer MACs, no encryption).
-
-### ESP-IDF & Ethernet Note
-
-When using ESP-IDF with Ethernet, ESPHome disables the WiFi driver by default. However, ESP-NOW requires the WiFi radio/driver even if only Ethernet is used for networking. This component automatically enables the WiFi driver in ESP-IDF builds by injecting the necessary Kconfig options:
-
-```
-CONFIG_ESP_WIFI_ENABLED=y
-CONFIG_SW_COEXIST_ENABLE=y
-```
-
-No manual changes are needed; this is handled in the component's codegen.
 
 
 ## Features
@@ -45,9 +33,7 @@ No manual changes are needed; this is handled in the component's codegen.
 
 ```yaml
 external_components:
-
-  - source: github://your/repo/components/espnow_pubsub
-
+  - source: github://megageek/esphome-espnow-pubsub/components/espnow_pubsub
 
 espnow_pubsub:
   id: my_pubsub
@@ -97,11 +83,7 @@ ethernet:
   power_pin: GPIO16
 
 external_components:
-  - source:
-      type: local
-      path: components
-    components:
-      - espnow_pubsub
+  - source: github://megageek/esphome-espnow-pubsub/components/espnow_pubsub
 
 espnow_pubsub:
   id: my_pubsub
@@ -153,6 +135,11 @@ espnow_pubsub:
 - ESP-NOW error/status is logged and exposed as a text sensor
 - README and YAML examples are kept up to date with implementation
 - Peer-to-peer (unicast) encrypted ESP-NOW is not supported (broadcast only)
+
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
 
 ## Changelog
 
