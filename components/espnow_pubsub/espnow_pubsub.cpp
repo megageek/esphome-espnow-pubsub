@@ -719,6 +719,31 @@ void EspNowPubSub::add_subscription(const std::string &topic, OnMessageTrigger *
 // OnMessageTrigger implementation (stub)
 OnMessageTrigger::OnMessageTrigger(EspNowPubSub *parent, const std::string &topic) {}
 
+// EspnowPubSubPublishAction implementation
+template<typename... Ts>
+EspnowPubSubPublishAction<Ts...>::EspnowPubSubPublishAction(EspNowPubSub *parent) : parent_(parent) {}
+
+template<typename... Ts>
+void EspnowPubSubPublishAction<Ts...>::set_topic(const std::string &topic) { topic_ = topic; }
+
+template<typename... Ts>
+void EspnowPubSubPublishAction<Ts...>::set_payload(TemplatableValue<std::string, Ts...> payload) {
+  payload_ = std::move(payload);
+}
+
+template<typename... Ts>
+void EspnowPubSubPublishAction<Ts...>::play(Ts... x) {
+  auto payload = this->payload_.value(x...);
+  ESP_LOGV("espnow_pubsub", "Playing publish action: topic='%s', payload='%s'", topic_.c_str(), payload.c_str());
+  if (parent_ != nullptr) {
+    parent_->publish(topic_, payload);
+  }
+}
+
+// Explicit template instantiations for common action argument signatures
+template class EspnowPubSubPublishAction<>;
+template class EspnowPubSubPublishAction<float>;
+
 }  // namespace espnow_pubsub
 }  // namespace esphome
 

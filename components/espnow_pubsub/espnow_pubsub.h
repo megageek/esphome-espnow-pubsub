@@ -139,16 +139,10 @@ class OnMessageTrigger : public Trigger<std::string, std::string> {
 template<typename... Ts>
 class EspnowPubSubPublishAction : public Action<Ts...> {
  public:
-  explicit EspnowPubSubPublishAction(EspNowPubSub *parent) : parent_(parent) {}
-  void set_topic(const std::string &topic) { topic_ = topic; }
-  void set_payload(TemplatableValue<std::string, Ts...> payload) { payload_ = std::move(payload); }
-  void play(Ts... x) override {
-    auto payload = this->payload_.value(x...);
-    ESP_LOGV("espnow_pubsub", "Playing publish action: topic='%s', payload='%s'", topic_.c_str(), payload.c_str());
-    if (parent_ != nullptr) {
-      parent_->publish(topic_, payload);
-    }
-  }
+  explicit EspnowPubSubPublishAction(EspNowPubSub *parent);
+  void set_topic(const std::string &topic);
+  void set_payload(TemplatableValue<std::string, Ts...> payload);
+  void play(Ts... x) override;
 
  protected:
   EspNowPubSub *parent_;
