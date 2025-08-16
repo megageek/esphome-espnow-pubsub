@@ -49,7 +49,7 @@ namespace espnow_pubsub {
 //   sub = "foo/bar", topic = "foo/bar/baz"           => false
 //
 // Called from receive_message() for every incoming message to determine if a subscription matches.
-static bool mqtt_topic_matches(const std::string &sub, const std::string &topic) {
+bool mqtt_topic_matches(const std::string &sub, const std::string &topic) {
   size_t sub_pos = 0, topic_pos = 0;
   // Iterate through both sub and topic, token by token (split by '/')
   while (sub_pos < sub.size() && topic_pos < topic.size()) {
