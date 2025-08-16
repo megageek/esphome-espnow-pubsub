@@ -138,13 +138,13 @@ class EspnowPubSubPublishAction : public Action<> {
  public:
   EspnowPubSubPublishAction(EspNowPubSub *parent);
   void set_topic(const std::string &topic);
-  void set_payload(const std::string &payload);
+  void set_payload(TemplatableValue<std::string> payload);
   void play() override;
 
  protected:
   EspNowPubSub *parent_;
   std::string topic_;
-  std::string payload_;
+  TemplatableValue<std::string> payload_;
 };
 
 }  // namespace espnow_pubsub

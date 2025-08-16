@@ -727,14 +727,15 @@ void EspnowPubSubPublishAction::set_topic(const std::string &topic) {
   topic_ = topic;
 }
 
-void EspnowPubSubPublishAction::set_payload(const std::string &payload) {
-  payload_ = payload;
+void EspnowPubSubPublishAction::set_payload(TemplatableValue<std::string> payload) {
+  payload_ = std::move(payload);
 }
 
 void EspnowPubSubPublishAction::play() {
-  ESP_LOGV(TAG, "Playing publish action: topic='%s', payload='%s'", topic_.c_str(), payload_.c_str());
+  auto payload = this->payload_.value();
+  ESP_LOGV(TAG, "Playing publish action: topic='%s', payload='%s'", topic_.c_str(), payload.c_str());
   if (parent_ != nullptr) {
-    parent_->publish(topic_, payload_);
+    parent_->publish(topic_, payload);
   }
 }
 
