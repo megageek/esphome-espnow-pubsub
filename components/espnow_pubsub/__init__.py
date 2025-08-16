@@ -18,10 +18,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-# Import sensor and text_sensor modules for registration helpers
-from esphome.components import sensor, text_sensor
-# Placeholder for espnow_pubsub component Python integration
-# (Renamed from pubsub_espnow)
+
+"""ESPNow PubSub component."""
 
 from esphome import automation
 import esphome.codegen as cg
@@ -58,30 +56,6 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional("on_message"): cv.ensure_list(ON_MESSAGE_SCHEMA),
     }
 ).extend(cv.COMPONENT_SCHEMA)
-
-
-async def espnow_pubsub_sensor_to_code(config):
-    parent = await cg.get_variable(config[CONF_ID])
-    if "rssi" in config:
-        sens = await sensor.new_sensor(config["rssi"])
-        await sensor.register_sensor(sens, config["rssi"])
-        cg.add(parent.set_rssi_sensor(sens))
-    if "sent_count" in config:
-        sens = await sensor.new_sensor(config["sent_count"])
-        await sensor.register_sensor(sens, config["sent_count"])
-        cg.add(parent.set_sent_count_sensor(sens))
-    if "received_count" in config:
-        sens = await sensor.new_sensor(config["received_count"])
-        await sensor.register_sensor(sens, config["received_count"])
-        cg.add(parent.set_received_count_sensor(sens))
-
-async def espnow_pubsub_text_sensor_to_code(config):
-    parent = await cg.get_variable(config[CONF_ID])
-    if "status_text" in config:
-        tsens = await text_sensor.new_text_sensor(config["status_text"])
-        await text_sensor.register_text_sensor(tsens, config["status_text"])
-        cg.add(parent.set_status_text_sensor(tsens))
-
 
 @automation.register_action(
     "espnow_pubsub.publish",
