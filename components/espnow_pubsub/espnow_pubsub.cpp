@@ -726,10 +726,9 @@ void EspNowPubSub::add_subscription(const std::string &topic, OnMessageTrigger *
 OnMessageTrigger::OnMessageTrigger(EspNowPubSub *parent, const std::string &topic) {}
 
 // EspnowPubSubPublishAction implementation
+
 template<typename... Ts>
-EspnowPubSubPublishAction<Ts...>::EspnowPubSubPublishAction() {
-  parent_ = global_espnow_pubsub_instance;
-}
+EspnowPubSubPublishAction<Ts...>::EspnowPubSubPublishAction(EspNowPubSub *parent) : parent_(parent) {}
 
 template<typename... Ts>
 void EspnowPubSubPublishAction<Ts...>::set_topic(const std::string &topic) { topic_ = topic; }
@@ -742,10 +741,13 @@ void EspnowPubSubPublishAction<Ts...>::set_payload(TemplatableValue<std::string,
 template<typename... Ts>
 void EspnowPubSubPublishAction<Ts...>::play(Ts... x) {
   auto payload = this->payload_.value(x...);
-  ESP_LOGV("espnow_pubsub", "Playing publish action: topic='%s', payload='%s'", topic_.c_str(), payload.c_str());
+  ESP_LOGD("espnow_pubsub", "[DIAG] EspnowPubSubPublishAction::play called. topic='%s', payload='%s'", topic_.c_str(), payload.c_str());
   auto *parent = parent_ != nullptr ? parent_ : global_espnow_pubsub_instance;
   if (parent != nullptr) {
+    ESP_LOGV("espnow_pubsub", "[DIAG] parent pointer is valid, calling publish().");
     parent->publish(topic_, payload);
+  } else {
+    ESP_LOGE("espnow_pubsub", "[DIAG] parent pointer is null! Publish action will not execute.");
   }
 }
 
