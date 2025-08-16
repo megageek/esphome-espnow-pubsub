@@ -312,8 +312,12 @@ void EspNowPubSub::init_espnow_common() {
 // 3. If channels do not match, log an error and set error code.
 void EspNowPubSub::init_espnow_after_wifi(uint8_t wifi_channel) {
   ESP_LOGV(TAG, "[INIT] init_espnow_after_wifi called with wifi_channel=%d, configured channel_=%d", (int)wifi_channel, (int)channel_);
-  if (wifi_channel != channel_) {
-    ESP_LOGE(TAG, "[ERROR] ESP-NOW channel (%d) does not match WiFi channel (%d)! ESP-NOW will not work.", channel_, wifi_channel);
+  // Record the channel provided by the WiFi component and determine compatibility
+  wifi_component_channel_ = static_cast<int>(wifi_channel);
+  wifi_channel_compatible_ = (wifi_channel == channel_);
+
+  if (!wifi_channel_compatible_) {
+    ESP_LOGE(TAG, "[ERROR] ESP-NOW channel (%d) does not match WiFi channel (%d)! ESP-NOW will not work.", channel_, wifi_component_channel_);
     espnow_init_error_code_ = ESP_FAIL;
     last_status_ = "ESP-NOW channel mismatch";
 #ifdef USE_TEXT_SENSOR
@@ -664,6 +668,8 @@ void EspNowPubSub::dump_config() {
   ESP_LOGCONFIG(TAG, "ESP-NOW PubSub:");
   ESP_LOGCONFIG(TAG, "  MAC Address: %s", mac_address_.c_str());
   ESP_LOGCONFIG(TAG, "  Channel: %d", channel_);
+  ESP_LOGCONFIG(TAG, "  WiFi Component Channel: %d", wifi_component_channel_);
+  ESP_LOGCONFIG(TAG, "  WiFi Channel Compatible: %s", wifi_channel_compatible_ ? "YES" : "NO");
   if (!wifi_channel_compatible_) {
     ESP_LOGE(TAG, "  [ERROR] ESP-NOW channel (%d) does not match WiFi channel (%d)!", channel_, wifi_component_channel_);
   }
