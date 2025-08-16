@@ -23,7 +23,12 @@ import esphome.config_validation as cv
 from esphome.components import sensor
 from . import espnow_pubsub_ns, EspNowPubSub
 
-DEPENDANCIES = ["espnow_pubsub"]
+# Correctly declare component dependencies so ESPHome ensures the
+# base ``espnow_pubsub`` component is initialized before any sensors.
+# The previous misspelled name (``DEPENDANCIES``) meant this list was
+# ignored, allowing sensors to be registered without the core component
+# being loaded, which could lead to runtime errors.
+DEPENDENCIES = ["espnow_pubsub"]
 
 ESP_NOW_SENSOR_SCHEMA = sensor.sensor_schema(
     unit_of_measurement="dBm",
