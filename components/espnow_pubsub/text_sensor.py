@@ -23,7 +23,11 @@ import esphome.config_validation as cv
 from esphome.components import text_sensor
 from . import espnow_pubsub_ns, EspNowPubSub
 
-DEPENDANCIES = ["espnow_pubsub"]
+# Declare the dependency on the core ``espnow_pubsub`` component. The
+# previous variable name ``DEPENDANCIES`` was misspelled, so ESPHome did
+# not recognize the dependency and the text sensor could be used without
+# the parent component being initialized.
+DEPENDENCIES = ["espnow_pubsub"]
 
 ESP_NOW_TEXT_SENSOR_SCHEMA = text_sensor.text_sensor_schema()
 
