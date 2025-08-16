@@ -62,14 +62,13 @@ CONFIG_SCHEMA = cv.Schema(
     EspnowPubSubPublishAction,
     cv.Schema(
         {
-            cv.Required(CONF_ID): cv.use_id(EspNowPubSub),
             cv.Required(CONF_TOPIC): cv.string,
             cv.Required("payload"): cv.templatable(cv.string),
         }
     ),
 )
 async def espnow_pubsub_publish_action_to_code(config, action_id, template_arg, args):
-    var = cg.new_Pvariable(action_id, template_arg, await cg.get_variable(config[CONF_ID]))
+    var = cg.new_Pvariable(action_id, template_arg)
     cg.add(var.set_topic(config[CONF_TOPIC]))
     payload = await cg.templatable(config["payload"], args, cg.std_string)
     cg.add(var.set_payload(payload))

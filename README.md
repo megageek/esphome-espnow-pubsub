@@ -62,7 +62,6 @@ text_sensor:
 
 # To publish a message from an automation:
 - espnow_pubsub.publish:
-    id: my_pubsub
     topic: "test/topic"
     payload: "hello world"
 ```

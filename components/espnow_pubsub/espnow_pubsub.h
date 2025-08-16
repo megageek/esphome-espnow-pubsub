@@ -139,13 +139,13 @@ class OnMessageTrigger : public Trigger<std::string, std::string> {
 template<typename... Ts>
 class EspnowPubSubPublishAction : public Action<Ts...> {
  public:
-  explicit EspnowPubSubPublishAction(EspNowPubSub *parent);
+  EspnowPubSubPublishAction();
   void set_topic(const std::string &topic);
   void set_payload(TemplatableValue<std::string, Ts...> payload);
   void play(Ts... x) override;
 
  protected:
-  EspNowPubSub *parent_;
+  EspNowPubSub *parent_ = nullptr;
   std::string topic_;
   TemplatableValue<std::string, Ts...> payload_;
 };
