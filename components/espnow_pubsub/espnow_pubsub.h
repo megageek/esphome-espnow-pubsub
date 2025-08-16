@@ -23,6 +23,7 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
+#include "esphome/core/log.h"
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
@@ -32,6 +33,7 @@
 #include <vector>
 #include <functional>
 #include <string>
+#include <utility>
 #include <esp_now.h>
 
 // Helper: MQTT topic match with wildcards
@@ -134,17 +136,18 @@ class OnMessageTrigger : public Trigger<std::string, std::string> {
 };
 
 // EspnowPubSubPublishAction: Action to publish a message to a topic
-class EspnowPubSubPublishAction : public Action<> {
+template<typename... Ts>
+class EspnowPubSubPublishAction : public Action<Ts...> {
  public:
-  EspnowPubSubPublishAction(EspNowPubSub *parent);
+  explicit EspnowPubSubPublishAction(EspNowPubSub *parent);
   void set_topic(const std::string &topic);
-  void set_payload(const std::string &payload);
-  void play() override;
+  void set_payload(TemplatableValue<std::string, Ts...> payload);
+  void play(Ts... x) override;
 
  protected:
   EspNowPubSub *parent_;
   std::string topic_;
-  std::string payload_;
+  TemplatableValue<std::string, Ts...> payload_;
 };
 
 }  // namespace espnow_pubsub

@@ -90,14 +90,15 @@ async def espnow_pubsub_text_sensor_to_code(config):
         {
             cv.Required(CONF_ID): cv.use_id(EspNowPubSub),
             cv.Required(CONF_TOPIC): cv.string,
-            cv.Required("payload"): cv.string,
+            cv.Required("payload"): cv.templatable(cv.string),
         }
     ),
 )
 async def espnow_pubsub_publish_action_to_code(config, action_id, template_arg, args):
-    var = cg.new_Pvariable(action_id, await cg.get_variable(config[CONF_ID]))
+    var = cg.new_Pvariable(action_id, template_arg, await cg.get_variable(config[CONF_ID]))
     cg.add(var.set_topic(config[CONF_TOPIC]))
-    cg.add(var.set_payload(config["payload"]))
+    payload = await cg.templatable(config["payload"], args, cg.std_string)
+    cg.add(var.set_payload(payload))
     return var
 
 async def to_code(config):
