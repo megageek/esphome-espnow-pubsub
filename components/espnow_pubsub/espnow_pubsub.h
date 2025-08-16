@@ -36,12 +36,12 @@
 #include <utility>
 #include <esp_now.h>
 
-// Helper: MQTT topic match with wildcards
-// Supports + (single-level) and # (multi-level) wildcards
-static bool mqtt_topic_matches(const std::string &sub, const std::string &topic);
-
 namespace esphome {
 namespace espnow_pubsub {
+
+// Helper: MQTT topic match with wildcards
+// Supports + (single-level) and # (multi-level) wildcards
+bool mqtt_topic_matches(const std::string &sub, const std::string &topic);
 
 class OnMessageTrigger; // Forward declaration
 
