@@ -68,7 +68,39 @@ CONFIG_SCHEMA = cv.Schema(
     ),
 )
 async def espnow_pubsub_publish_action_to_code(config, action_id, template_arg, args):
-    var = cg.new_Pvariable(action_id, template_arg)
+    # Get the parent instance (the only espnow_pubsub component)
+    # Find the only EspNowPubSub id from the global config
+    from esphome.const import CONF_ID
+    # Find the main espnow_pubsub config block from CORE.config
+    main_conf = None
+    for value in CORE.config.values():
+        # If value is a list (EList), iterate its items
+        if isinstance(value, list):
+            for conf in value:
+                if (
+                    isinstance(conf, dict)
+                    and conf.get(CONF_ID)
+                    and conf.get(CONF_CHANNEL)
+                    and conf.get(CONF_ID).type == EspNowPubSub
+                ):
+                    main_conf = conf
+                    break
+            if main_conf:
+                break
+        # If value is a dict, check directly
+        elif isinstance(value, dict):
+            if (
+                value.get(CONF_ID)
+                and value.get(CONF_CHANNEL)
+                and value.get(CONF_ID).type == EspNowPubSub
+            ):
+                main_conf = value
+                break
+    if not main_conf:
+        import esphome.config_validation as cv
+        raise cv.Invalid("No espnow_pubsub instance found. Please declare one in your YAML config.")
+    parent = await cg.get_variable(main_conf[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, parent)
     cg.add(var.set_topic(config[CONF_TOPIC]))
     payload = await cg.templatable(config["payload"], args, cg.std_string)
     cg.add(var.set_payload(payload))
