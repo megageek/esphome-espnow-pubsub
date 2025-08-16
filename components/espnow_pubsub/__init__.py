@@ -33,7 +33,7 @@ from esphome.const import (
 from esphome.components.esp32 import add_idf_sdkconfig_option
 from esphome.core import CORE
 
-MULTI_CONF = True
+## Only one instance of espnow_pubsub is allowed
 
 espnow_pubsub_ns = cg.esphome_ns.namespace("espnow_pubsub")
 EspNowPubSub = espnow_pubsub_ns.class_("EspNowPubSub", cg.Component)
