@@ -719,26 +719,6 @@ void EspNowPubSub::add_subscription(const std::string &topic, OnMessageTrigger *
 // OnMessageTrigger implementation (stub)
 OnMessageTrigger::OnMessageTrigger(EspNowPubSub *parent, const std::string &topic) {}
 
-// EspnowPubSubPublishAction implementation (stub)
-EspnowPubSubPublishAction::EspnowPubSubPublishAction(EspNowPubSub *parent)
-  : parent_(parent) {}
-
-void EspnowPubSubPublishAction::set_topic(const std::string &topic) {
-  topic_ = topic;
-}
-
-void EspnowPubSubPublishAction::set_payload(TemplatableValue<std::string> payload) {
-  payload_ = std::move(payload);
-}
-
-void EspnowPubSubPublishAction::play() {
-  auto payload = this->payload_.value();
-  ESP_LOGV(TAG, "Playing publish action: topic='%s', payload='%s'", topic_.c_str(), payload.c_str());
-  if (parent_ != nullptr) {
-    parent_->publish(topic_, payload);
-  }
-}
-
 }  // namespace espnow_pubsub
 }  // namespace esphome
 

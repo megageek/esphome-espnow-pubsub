@@ -95,7 +95,7 @@ async def espnow_pubsub_text_sensor_to_code(config):
     ),
 )
 async def espnow_pubsub_publish_action_to_code(config, action_id, template_arg, args):
-    var = cg.new_Pvariable(action_id, await cg.get_variable(config[CONF_ID]))
+    var = cg.new_Pvariable(action_id, template_arg, await cg.get_variable(config[CONF_ID]))
     cg.add(var.set_topic(config[CONF_TOPIC]))
     payload = await cg.templatable(config["payload"], args, cg.std_string)
     cg.add(var.set_payload(payload))
