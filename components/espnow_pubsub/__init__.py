@@ -62,7 +62,7 @@ CONFIG_SCHEMA = cv.Schema(
     EspnowPubSubPublishAction,
     cv.Schema(
         {
-            cv.Required(CONF_TOPIC): cv.string,
+            cv.Required(CONF_TOPIC): cv.templatable(cv.string),
             cv.Required("payload"): cv.templatable(cv.string),
         }
     ),
@@ -101,7 +101,8 @@ async def espnow_pubsub_publish_action_to_code(config, action_id, template_arg, 
         raise cv.Invalid("No espnow_pubsub instance found. Please declare one in your YAML config.")
     parent = await cg.get_variable(main_conf[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, parent)
-    cg.add(var.set_topic(config[CONF_TOPIC]))
+    topic = await cg.templatable(config["topic"], args, cg.std_string)
+    cg.add(var.set_topic(topic))
     payload = await cg.templatable(config["payload"], args, cg.std_string)
     cg.add(var.set_payload(payload))
     return var

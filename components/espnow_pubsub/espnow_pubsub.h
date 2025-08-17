@@ -140,13 +140,13 @@ template<typename... Ts>
 class EspnowPubSubPublishAction : public Action<Ts...> {
  public:
   EspnowPubSubPublishAction(EspNowPubSub *parent);
-  void set_topic(const std::string &topic);
+  void set_topic(TemplatableValue<std::string, Ts...> topic);
   void set_payload(TemplatableValue<std::string, Ts...> payload);
   void play(Ts... x) override;
 
  protected:
   EspNowPubSub *parent_ = nullptr;
-  std::string topic_;
+  TemplatableValue<std::string, Ts...>  topic_;
   TemplatableValue<std::string, Ts...> payload_;
 };
 

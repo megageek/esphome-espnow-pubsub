@@ -731,7 +731,9 @@ template<typename... Ts>
 EspnowPubSubPublishAction<Ts...>::EspnowPubSubPublishAction(EspNowPubSub *parent) : parent_(parent) {}
 
 template<typename... Ts>
-void EspnowPubSubPublishAction<Ts...>::set_topic(const std::string &topic) { topic_ = topic; }
+void EspnowPubSubPublishAction<Ts...>::set_topic(TemplatableValue<std::string, Ts...> topic) {
+  topic_ = std::move(topic);
+}
 
 template<typename... Ts>
 void EspnowPubSubPublishAction<Ts...>::set_payload(TemplatableValue<std::string, Ts...> payload) {
@@ -740,12 +742,13 @@ void EspnowPubSubPublishAction<Ts...>::set_payload(TemplatableValue<std::string,
 
 template<typename... Ts>
 void EspnowPubSubPublishAction<Ts...>::play(Ts... x) {
+  auto topic = this->topic_.value(x...);
   auto payload = this->payload_.value(x...);
-  ESP_LOGD("espnow_pubsub", "[DIAG] EspnowPubSubPublishAction::play called. topic='%s', payload='%s'", topic_.c_str(), payload.c_str());
+  ESP_LOGD("espnow_pubsub", "[DIAG] EspnowPubSubPublishAction::play called. topic='%s', payload='%s'", topic.c_str(), payload.c_str());
   auto *parent = parent_ != nullptr ? parent_ : global_espnow_pubsub_instance;
   if (parent != nullptr) {
     ESP_LOGV("espnow_pubsub", "[DIAG] parent pointer is valid, calling publish().");
-    parent->publish(topic_, payload);
+    parent->publish(topic, payload);
   } else {
     ESP_LOGE("espnow_pubsub", "[DIAG] parent pointer is null! Publish action will not execute.");
   }
@@ -754,6 +757,13 @@ void EspnowPubSubPublishAction<Ts...>::play(Ts... x) {
 // Explicit template instantiations for common action argument signatures
 template class EspnowPubSubPublishAction<>;
 template class EspnowPubSubPublishAction<float>;
+template class EspnowPubSubPublishAction<std::string, std::string>;
+template class EspnowPubSubPublishAction<int>;
+template class EspnowPubSubPublishAction<bool>;
+template class EspnowPubSubPublishAction<float, std::string>;
+template class EspnowPubSubPublishAction<std::string, float>;
+template class EspnowPubSubPublishAction<int, std::string>;
+template class EspnowPubSubPublishAction<std::string, int>;
 
 }  // namespace espnow_pubsub
 }  // namespace esphome
