@@ -24,6 +24,8 @@
 #include <cstring>
 #include <esp_now.h>
 #include <esp_event.h>
+#include <esp_random.h>
+#include <esp_rom_sys.h>
 #include "esp_wifi.h"
 #include "esp_attr.h"
 #include "espnow_pubsub.h"
@@ -569,6 +571,12 @@ void EspNowPubSub::publish(const std::string &topic, const std::string &payload)
       sent_count_++;
     } else {
       ESP_LOGE(TAG, "ESP-NOW send failed: %d (0x%04X)", err, (unsigned) err);
+    }
+    if (i < send_times_ - 1) {
+      // Introduce a small random jitter before the next repeat to reduce the
+      // chance of consecutive messages being lost to a burst of noise.
+      uint32_t jitter_us = esp_random() % 10000;  // up to 10ms
+      esp_rom_delay_us(jitter_us);
     }
   }
   if (err != ESP_OK) {
