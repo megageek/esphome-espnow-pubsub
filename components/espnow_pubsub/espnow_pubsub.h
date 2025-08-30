@@ -48,7 +48,7 @@ class OnMessageTrigger; // Forward declaration
 
 class EspNowPubSub : public Component {
  public:
-  using MessageCallback = std::function<void(const std::string &topic, const std::string &payload)>;
+  using MessageCallback = std::function<void(const std::string &topic, const std::string &payload, uint32_t sequence)>;
 
   EspNowPubSub();
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
@@ -63,7 +63,7 @@ class EspNowPubSub : public Component {
   void add_subscription(const std::string &topic, OnMessageTrigger *trigger);
 
   void publish(const std::string &topic, const std::string &payload);
-  void receive_message(const std::string &topic, const std::string &payload);
+  void receive_message(const std::string &topic, const std::string &payload, uint32_t sequence);
   
   void on_espnow_receive(const esp_now_recv_info *recv_info, const uint8_t *mac_addr, const uint8_t *data, int len);
 
@@ -126,6 +126,7 @@ class EspNowPubSub : public Component {
   struct QueuedMessage {
     std::string topic;
     std::string payload;
+    uint32_t sequence;
   };
   std::vector<QueuedMessage> message_queue_;
   // Maximum number of messages allowed in the queue (overflow handling)
@@ -138,7 +139,7 @@ class EspNowPubSub : public Component {
 };
 
 // OnMessageTrigger: Trigger for incoming messages on a topic
-class OnMessageTrigger : public Trigger<std::string, std::string> {
+class OnMessageTrigger : public Trigger<std::string, std::string, uint32_t> {
  public:
   OnMessageTrigger(EspNowPubSub *parent, const std::string &topic);
 };

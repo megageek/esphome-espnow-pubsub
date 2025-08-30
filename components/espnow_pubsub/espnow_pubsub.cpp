@@ -507,8 +507,10 @@ void EspNowPubSub::loop() {
     std::vector<QueuedMessage> local_queue;
     local_queue.swap(message_queue_);
     for (const auto &msg : local_queue) {
-      ESP_LOGD(TAG, "[LOOP] Processing queued ESP-NOW message: topic='%s', payload='%s'", msg.topic.c_str(), msg.payload.c_str());
-      receive_message(msg.topic, msg.payload);
+      ESP_LOGD(TAG,
+               "[LOOP] Processing queued ESP-NOW message: topic='%s', payload='%s', seq=%u",
+               msg.topic.c_str(), msg.payload.c_str(), msg.sequence);
+      receive_message(msg.topic, msg.payload, msg.sequence);
     }
     pending_sensor_update = true;
     // Keep loop enabled for next run
@@ -655,7 +657,9 @@ void EspNowPubSub::on_espnow_receive(const esp_now_recv_info *recv_info, const u
   } else {
     last_sequence_by_mac_[mac_key] = seq;
   }
-  ESP_LOGV(TAG, "[ON_RX] Queuing topic='%s', payload='%s' for processing in loop", topic.c_str(), payload.c_str());
+  ESP_LOGV(TAG,
+           "[ON_RX] Queuing topic='%s', payload='%s', seq=%u for processing in loop",
+           topic.c_str(), payload.c_str(), seq);
   // Message queue overflow handling: drop oldest if full
   if (message_queue_.size() >= MAX_QUEUE_SIZE) {
     ESP_LOGW(TAG, "[ON_RX] Message queue full (%u), dropping oldest message", (unsigned)MAX_QUEUE_SIZE);
@@ -665,7 +669,7 @@ void EspNowPubSub::on_espnow_receive(const esp_now_recv_info *recv_info, const u
 #endif
     message_queue_.erase(message_queue_.begin());
   }
-  message_queue_.push_back({topic, payload});
+  message_queue_.push_back({topic, payload, seq});
   // Only update values here; actual sensor publishing happens in loop()
 #ifdef USE_SENSOR
   if (recv_info && recv_info->rx_ctrl) {
@@ -680,17 +684,21 @@ void EspNowPubSub::on_espnow_receive(const esp_now_recv_info *recv_info, const u
 
 // receive_message(): Called from the main loop to process a queued message.
 // Matches the topic against all subscriptions (with wildcards) and triggers callbacks.
-void EspNowPubSub::receive_message(const std::string &topic, const std::string &payload) {
+void EspNowPubSub::receive_message(const std::string &topic, const std::string &payload, uint32_t sequence) {
   bool matched = false;
   for (const auto &sub : subscriptions_) {
     if (mqtt_topic_matches(sub.topic, topic)) {
-      ESP_LOGI(TAG, "Received message: topic='%s', payload='%s' [MATCHED SUB: %s]", topic.c_str(), payload.c_str(), sub.topic.c_str());
+      ESP_LOGI(TAG,
+               "Received message: topic='%s', payload='%s', seq=%u [MATCHED SUB: %s]",
+               topic.c_str(), payload.c_str(), sequence, sub.topic.c_str());
       matched = true;
-      sub.callback(topic, payload);
+      sub.callback(topic, payload, sequence);
     }
   }
   if (!matched) {
-    ESP_LOGI(TAG, "Received message: topic='%s', payload='%s' [NOT SUBSCRIBED]", topic.c_str(), payload.c_str());
+    ESP_LOGI(TAG,
+             "Received message: topic='%s', payload='%s', seq=%u [NOT SUBSCRIBED]",
+             topic.c_str(), payload.c_str(), sequence);
   }
 }
 
@@ -749,9 +757,10 @@ void EspNowPubSub::dump_config() {
 // add_subscription(): Called during setup to add a topic subscription.
 // Registers a callback for the given topic (supports wildcards).
 void EspNowPubSub::add_subscription(const std::string &topic, OnMessageTrigger *trigger) {
-  subscriptions_.push_back({topic, [trigger](const std::string &topic, const std::string &payload) {
-    trigger->trigger(topic, payload);
-  }});
+  subscriptions_.push_back({topic,
+                            [trigger](const std::string &topic, const std::string &payload, uint32_t sequence) {
+                              trigger->trigger(topic, payload, sequence);
+                            }});
   has_subscriptions_ = true;
 }
 
