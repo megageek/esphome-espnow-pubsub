@@ -21,9 +21,11 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cstring>
 #include <esp_now.h>
 #include <esp_event.h>
 #include "esp_wifi.h"
+#include "esp_attr.h"
 #include "espnow_pubsub.h"
 #include "esphome/core/log.h"
 #include "esphome/core/defines.h"
@@ -33,6 +35,8 @@
 
 namespace esphome {
 namespace espnow_pubsub {
+
+RTC_DATA_ATTR static uint32_t rtc_sequence_number = 0;
 
 // MQTT-style topic matching with wildcards.
 // This function checks if a given topic string matches a subscription pattern using MQTT wildcards:
@@ -532,7 +536,8 @@ void EspNowPubSub::loop() {
 }
 
 // publish(): Called to send a message to all ESP-NOW peers (broadcast).
-// Formats the message as topic\0payload and sends via ESP-NOW.
+// Formats the message as [uint32_t seq][topic\0payload] and sends via ESP-NOW
+// multiple times based on send_times_.
 void EspNowPubSub::publish(const std::string &topic, const std::string &payload) {
   ESP_LOGI(TAG, "Publishing message: topic='%s', payload='%s'", topic.c_str(), payload.c_str());
   if (!espnow_init_ok_) {
@@ -543,14 +548,28 @@ void EspNowPubSub::publish(const std::string &topic, const std::string &payload)
 #endif
     return;
   }
-  // Format: topic\0payload
-  std::string msg = topic + '\0' + payload;
+  // Format: [seq][topic\0payload]
+  uint32_t seq = rtc_sequence_number++;
+  std::string msg;
+  msg.resize(sizeof(uint32_t));
+  memcpy(&msg[0], &seq, sizeof(uint32_t));
+  msg += topic;
+  msg.push_back('\0');
+  msg += payload;
+
   uint8_t broadcast_mac[6];
   memset(broadcast_mac, 0xFF, 6);
-  esp_err_t err = esp_now_send(broadcast_mac, reinterpret_cast<const uint8_t *>(msg.data()), msg.size());
+
+  esp_err_t err = ESP_OK;
+  for (int i = 0; i < send_times_; ++i) {
+    err = esp_now_send(broadcast_mac, reinterpret_cast<const uint8_t *>(msg.data()), msg.size());
+    if (err == ESP_OK) {
+      sent_count_++;
+    } else {
+      ESP_LOGE(TAG, "ESP-NOW send failed: %d (0x%04X)", err, (unsigned) err);
+    }
+  }
   if (err != ESP_OK) {
-    // Print error as both decimal and hex for easier ESP-IDF lookup
-    ESP_LOGE(TAG, "ESP-NOW send failed: %d (0x%04X)", err, (unsigned)err);
     switch (err) {
       case ESP_ERR_ESPNOW_NOT_INIT:
         last_status_ = "Send failed: ESP-NOW not initialized (ESP_ERR_ESPNOW_NOT_INIT)";
@@ -571,19 +590,15 @@ void EspNowPubSub::publish(const std::string &topic, const std::string &payload)
         last_status_ = "Send failed: " + std::to_string(err);
         break;
     }
-#ifdef USE_TEXT_SENSOR
-    if (status_text_sensor_) status_text_sensor_->publish_state(last_status_);
-#endif
   } else {
-    sent_count_++;
-#ifdef USE_SENSOR
-    if (sent_count_sensor_) sent_count_sensor_->publish_state(sent_count_);
-#endif
     last_status_ = "OK";
-#ifdef USE_TEXT_SENSOR
-    if (status_text_sensor_) status_text_sensor_->publish_state(last_status_);
-#endif
   }
+#ifdef USE_SENSOR
+  if (sent_count_sensor_) sent_count_sensor_->publish_state(sent_count_);
+#endif
+#ifdef USE_TEXT_SENSOR
+  if (status_text_sensor_) status_text_sensor_->publish_state(last_status_);
+#endif
 }
 
 // on_espnow_receive(): Called from the ESP-NOW receive callback (ISR context).
@@ -602,7 +617,7 @@ void EspNowPubSub::on_espnow_receive(const esp_now_recv_info *recv_info, const u
 #endif
     return;
   }
-  if (len <= 0) {
+  if (len <= (int) sizeof(uint32_t)) {
     ESP_LOGE(TAG, "[ON_RX] len is invalid: %d", len);
     last_status_ = "RX error: invalid len";
 #ifdef USE_TEXT_SENSOR
@@ -610,10 +625,12 @@ void EspNowPubSub::on_espnow_receive(const esp_now_recv_info *recv_info, const u
 #endif
     return;
   }
-  // Parse topic\0payload
-  const char *raw = reinterpret_cast<const char *>(data);
-  int topic_len = strnlen(raw, len);
-  if (topic_len >= len - 1) {
+  // Parse seq + topic\0payload
+  uint32_t seq = 0;
+  memcpy(&seq, data, sizeof(uint32_t));
+  const char *raw = reinterpret_cast<const char *>(data + sizeof(uint32_t));
+  int topic_len = strnlen(raw, len - sizeof(uint32_t));
+  if (topic_len >= len - (int) sizeof(uint32_t) - 1) {
     ESP_LOGE(TAG, "[ON_RX] Malformed ESP-NOW message: topic_len=%d, len=%d", topic_len, len);
     last_status_ = "RX error: malformed message";
 #ifdef USE_TEXT_SENSOR
@@ -622,7 +639,22 @@ void EspNowPubSub::on_espnow_receive(const esp_now_recv_info *recv_info, const u
     return;
   }
   std::string topic(raw, topic_len);
-  std::string payload(raw + topic_len + 1, len - topic_len - 1);
+  std::string payload(raw + topic_len + 1, len - sizeof(uint32_t) - topic_len - 1);
+  std::string mac_key(mac_str);
+  auto it = last_sequence_by_mac_.find(mac_key);
+  if (it != last_sequence_by_mac_.end()) {
+    uint32_t last_seq = it->second;
+    if (seq == last_seq) {
+      ESP_LOGV(TAG, "[ON_RX] Duplicate seq %u from %s ignored", seq, mac_str);
+      return;
+    }
+    if (seq < last_seq) {
+      ESP_LOGV(TAG, "[ON_RX] Sequence reset from %u to %u for %s", last_seq, seq, mac_str);
+    }
+    it->second = seq;
+  } else {
+    last_sequence_by_mac_[mac_key] = seq;
+  }
   ESP_LOGV(TAG, "[ON_RX] Queuing topic='%s', payload='%s' for processing in loop", topic.c_str(), payload.c_str());
   // Message queue overflow handling: drop oldest if full
   if (message_queue_.size() >= MAX_QUEUE_SIZE) {

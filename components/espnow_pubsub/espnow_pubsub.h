@@ -34,6 +34,7 @@
 #include <functional>
 #include <string>
 #include <utility>
+#include <unordered_map>
 #include <esp_now.h>
 
 namespace esphome {
@@ -74,6 +75,8 @@ class EspNowPubSub : public Component {
   void init_espnow_common();
   // ESP-NOW initialization after WiFi connects and channel is valid
   void init_espnow_after_wifi(uint8_t wifi_channel);
+
+  void set_send_times(int send_times) { send_times_ = send_times; }
   
  // Sensor setters
 #ifdef USE_SENSOR
@@ -127,6 +130,11 @@ class EspNowPubSub : public Component {
   std::vector<QueuedMessage> message_queue_;
   // Maximum number of messages allowed in the queue (overflow handling)
   static constexpr size_t MAX_QUEUE_SIZE = 16;
+
+  int send_times_{1};
+  // Track last seen sequence number per MAC to filter duplicates while
+  // permitting counter resets after a reboot or wrap-around.
+  std::unordered_map<std::string, uint32_t> last_sequence_by_mac_;
 };
 
 // OnMessageTrigger: Trigger for incoming messages on a topic

@@ -53,6 +53,7 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(EspNowPubSub),
         cv.Required(CONF_CHANNEL): cv.int_range(1, 14),
+        cv.Optional("send_times", default=1): cv.int_range(min=1, max=10),
         cv.Optional("on_message"): cv.ensure_list(ON_MESSAGE_SCHEMA),
     }
 ).extend(cv.COMPONENT_SCHEMA)
@@ -112,6 +113,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     cg.add(var.set_channel(config[CONF_CHANNEL]))
+    cg.add(var.set_send_times(config["send_times"]))
 
     for conf in config.get("on_message", []):
         # Fix: conf may be a list if schema is not flattened
