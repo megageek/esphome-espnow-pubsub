@@ -57,6 +57,7 @@ class EspNowPubSub : public Component {
   void dump_config() override;
 
   void set_channel(int channel) { channel_ = channel; }
+  void set_tx_power(float tx_power) { tx_power_ = tx_power; }
 
   // Only compile-time subscriptions via add_subscription
   void add_subscription(const std::string &topic, OnMessageTrigger *trigger);
@@ -87,6 +88,7 @@ class EspNowPubSub : public Component {
 
  protected:
   int channel_{1};
+  float tx_power_{-1.0f};
   struct Subscription {
     std::string topic;
     MessageCallback callback;

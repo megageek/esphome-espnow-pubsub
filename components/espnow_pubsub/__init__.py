@@ -42,6 +42,9 @@ OnMessageTrigger = espnow_pubsub_ns.class_("OnMessageTrigger", automation.Trigge
 # Actions
 EspnowPubSubPublishAction = espnow_pubsub_ns.class_("EspnowPubSubPublishAction", automation.Action)
 
+# Local constants
+CONF_TX_POWER = "tx_power"
+
 ON_MESSAGE_SCHEMA = automation.validate_automation(
     {
         cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(OnMessageTrigger),
@@ -53,6 +56,7 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(EspNowPubSub),
         cv.Required(CONF_CHANNEL): cv.int_range(1, 14),
+        cv.Optional(CONF_TX_POWER): cv.float_range(min=2.0, max=20.5),
         cv.Optional("on_message"): cv.ensure_list(ON_MESSAGE_SCHEMA),
     }
 ).extend(cv.COMPONENT_SCHEMA)
@@ -112,6 +116,8 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     cg.add(var.set_channel(config[CONF_CHANNEL]))
+    if CONF_TX_POWER in config:
+        cg.add(var.set_tx_power(config[CONF_TX_POWER]))
 
     for conf in config.get("on_message", []):
         # Fix: conf may be a list if schema is not flattened

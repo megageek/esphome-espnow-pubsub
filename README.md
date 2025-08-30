@@ -17,6 +17,7 @@ This component enables MQTT-like pub/sub messaging over ESP-NOW for ESP32 device
 - Robust ESP-NOW pub/sub messaging for ESP32
 - Works with WiFi, Ethernet, or standalone (no network stack)
 - Automatic WiFi driver enablement for ESP-NOW under ESP-IDF/Ethernet
+- Optional transmit power configuration for ESP-NOW messages
 - Broadcast-based (no peer MAC configuration required)
 - Topic-based subscription and message dispatch
 - MQTT-style wildcard topic matching (`+` and `#`)
@@ -38,6 +39,7 @@ external_components:
 espnow_pubsub:
   id: my_pubsub
   channel: 6
+  tx_power: 17
   on_message:
     - topic: "test/topic"
       then:

@@ -21,6 +21,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cmath>
 #include <esp_now.h>
 #include <esp_event.h>
 #include "esp_wifi.h"
@@ -199,6 +200,15 @@ void EspNowPubSub::init_espnow_common() {
   esp_err_t ch_err = esp_wifi_set_channel(channel_, WIFI_SECOND_CHAN_NONE);
   if (ch_err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to set WiFi channel to %d: %d", channel_, (int)ch_err);
+  }
+
+  // Optionally set the WiFi transmit power if configured
+  if (tx_power_ >= 0.0f) {
+    int8_t power = static_cast<int8_t>(std::round(tx_power_ * 4.0f));
+    esp_err_t p_err = esp_wifi_set_max_tx_power(power);
+    if (p_err != ESP_OK) {
+      ESP_LOGW(TAG, "Failed to set WiFi max TX power to %.1f dBm: %d", tx_power_, (int)p_err);
+    }
   }
 
   // 4. Manage WiFi power save:
@@ -668,6 +678,9 @@ void EspNowPubSub::dump_config() {
   ESP_LOGCONFIG(TAG, "ESP-NOW PubSub:");
   ESP_LOGCONFIG(TAG, "  MAC Address: %s", mac_address_.c_str());
   ESP_LOGCONFIG(TAG, "  Channel: %d", channel_);
+  if (tx_power_ >= 0.0f) {
+    ESP_LOGCONFIG(TAG, "  TX Power: %.1f dBm", tx_power_);
+  }
   ESP_LOGCONFIG(TAG, "  WiFi Component Channel: %d", wifi_component_channel_);
   ESP_LOGCONFIG(TAG, "  WiFi Channel Compatible: %s", wifi_channel_compatible_ ? "YES" : "NO");
   if (!wifi_channel_compatible_) {
