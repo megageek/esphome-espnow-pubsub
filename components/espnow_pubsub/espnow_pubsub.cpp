@@ -718,6 +718,7 @@ void EspNowPubSub::dump_config() {
     }
   }
   ESP_LOGCONFIG(TAG, "  WiFi Power Save: %s", ps_str);
+  ESP_LOGCONFIG(TAG, "  Repeat Transmissions: %d", send_times_);
   if (espnow_init_ok_) {
     ESP_LOGCONFIG(TAG, "  ESP-NOW: initialized successfully");
   } else {
