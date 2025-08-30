@@ -34,6 +34,7 @@
 #include <functional>
 #include <string>
 #include <utility>
+#include <unordered_map>
 #include <esp_now.h>
 
 namespace esphome {
@@ -47,7 +48,7 @@ class OnMessageTrigger; // Forward declaration
 
 class EspNowPubSub : public Component {
  public:
-  using MessageCallback = std::function<void(const std::string &topic, const std::string &payload)>;
+  using MessageCallback = std::function<void(const std::string &topic, const std::string &payload, uint32_t sequence)>;
 
   EspNowPubSub();
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
@@ -62,7 +63,7 @@ class EspNowPubSub : public Component {
   void add_subscription(const std::string &topic, OnMessageTrigger *trigger);
 
   void publish(const std::string &topic, const std::string &payload);
-  void receive_message(const std::string &topic, const std::string &payload);
+  void receive_message(const std::string &topic, const std::string &payload, uint32_t sequence);
   
   void on_espnow_receive(const esp_now_recv_info *recv_info, const uint8_t *mac_addr, const uint8_t *data, int len);
 
@@ -74,6 +75,8 @@ class EspNowPubSub : public Component {
   void init_espnow_common();
   // ESP-NOW initialization after WiFi connects and channel is valid
   void init_espnow_after_wifi(uint8_t wifi_channel);
+
+  void set_send_times(int send_times) { send_times_ = send_times; }
   
  // Sensor setters
 #ifdef USE_SENSOR
@@ -123,14 +126,20 @@ class EspNowPubSub : public Component {
   struct QueuedMessage {
     std::string topic;
     std::string payload;
+    uint32_t sequence;
   };
   std::vector<QueuedMessage> message_queue_;
   // Maximum number of messages allowed in the queue (overflow handling)
   static constexpr size_t MAX_QUEUE_SIZE = 16;
+
+  int send_times_{1};
+  // Track last seen sequence number per MAC to filter duplicates while
+  // permitting counter resets after a reboot or wrap-around.
+  std::unordered_map<std::string, uint32_t> last_sequence_by_mac_;
 };
 
 // OnMessageTrigger: Trigger for incoming messages on a topic
-class OnMessageTrigger : public Trigger<std::string, std::string> {
+class OnMessageTrigger : public Trigger<std::string, std::string, uint32_t> {
  public:
   OnMessageTrigger(EspNowPubSub *parent, const std::string &topic);
 };

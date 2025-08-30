@@ -38,7 +38,9 @@ from esphome.core import CORE
 espnow_pubsub_ns = cg.esphome_ns.namespace("espnow_pubsub")
 EspNowPubSub = espnow_pubsub_ns.class_("EspNowPubSub", cg.Component)
 # Triggers
-OnMessageTrigger = espnow_pubsub_ns.class_("OnMessageTrigger", automation.Trigger.template(cg.std_string, cg.std_string))
+OnMessageTrigger = espnow_pubsub_ns.class_(
+    "OnMessageTrigger", automation.Trigger.template(cg.std_string, cg.std_string, cg.uint32)
+)
 # Actions
 EspnowPubSubPublishAction = espnow_pubsub_ns.class_("EspnowPubSubPublishAction", automation.Action)
 
@@ -53,6 +55,7 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(EspNowPubSub),
         cv.Required(CONF_CHANNEL): cv.int_range(1, 14),
+        cv.Optional("send_times", default=1): cv.int_range(min=1, max=10),
         cv.Optional("on_message"): cv.ensure_list(ON_MESSAGE_SCHEMA),
     }
 ).extend(cv.COMPONENT_SCHEMA)
@@ -112,6 +115,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     cg.add(var.set_channel(config[CONF_CHANNEL]))
+    cg.add(var.set_send_times(config["send_times"]))
 
     for conf in config.get("on_message", []):
         # Fix: conf may be a list if schema is not flattened
@@ -119,11 +123,19 @@ async def to_code(config):
             for sub_conf in conf:
                 trigger = cg.new_Pvariable(sub_conf[CONF_TRIGGER_ID], var, sub_conf[CONF_TOPIC])
                 cg.add(var.add_subscription(sub_conf[CONF_TOPIC], trigger))
-                await automation.build_automation(trigger, [(cg.std_string, "topic"), (cg.std_string, "payload")], sub_conf)
+                await automation.build_automation(
+                    trigger,
+                    [(cg.std_string, "topic"), (cg.std_string, "payload"), (cg.uint32, "sequence")],
+                    sub_conf,
+                )
         else:
             trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var, conf[CONF_TOPIC])
             cg.add(var.add_subscription(conf[CONF_TOPIC], trigger))
-            await automation.build_automation(trigger, [(cg.std_string, "topic"), (cg.std_string, "payload")], conf)
+            await automation.build_automation(
+                trigger,
+                [(cg.std_string, "topic"), (cg.std_string, "payload"), (cg.uint32, "sequence")],
+                conf,
+            )
 
     if CORE.using_esp_idf:
         # Ensure WiFi driver is enabled for ESP-IDF
