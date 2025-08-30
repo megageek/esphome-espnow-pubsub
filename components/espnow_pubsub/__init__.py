@@ -39,7 +39,7 @@ espnow_pubsub_ns = cg.esphome_ns.namespace("espnow_pubsub")
 EspNowPubSub = espnow_pubsub_ns.class_("EspNowPubSub", cg.Component)
 # Triggers
 OnMessageTrigger = espnow_pubsub_ns.class_(
-    "OnMessageTrigger", automation.Trigger.template(cg.std_string, cg.std_string, cg.uint32_t)
+    "OnMessageTrigger", automation.Trigger.template(cg.std_string, cg.std_string, cg.uint32)
 )
 # Actions
 EspnowPubSubPublishAction = espnow_pubsub_ns.class_("EspnowPubSubPublishAction", automation.Action)
@@ -125,7 +125,7 @@ async def to_code(config):
                 cg.add(var.add_subscription(sub_conf[CONF_TOPIC], trigger))
                 await automation.build_automation(
                     trigger,
-                    [(cg.std_string, "topic"), (cg.std_string, "payload"), (cg.uint32_t, "sequence")],
+                    [(cg.std_string, "topic"), (cg.std_string, "payload"), (cg.uint32, "sequence")],
                     sub_conf,
                 )
         else:
@@ -133,7 +133,7 @@ async def to_code(config):
             cg.add(var.add_subscription(conf[CONF_TOPIC], trigger))
             await automation.build_automation(
                 trigger,
-                [(cg.std_string, "topic"), (cg.std_string, "payload"), (cg.uint32_t, "sequence")],
+                [(cg.std_string, "topic"), (cg.std_string, "payload"), (cg.uint32, "sequence")],
                 conf,
             )
 
