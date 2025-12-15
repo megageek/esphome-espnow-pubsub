@@ -151,7 +151,7 @@ class EspnowPubSubPublishAction : public Action<Ts...> {
   EspnowPubSubPublishAction(EspNowPubSub *parent);
   void set_topic(TemplatableValue<std::string, Ts...> topic);
   void set_payload(TemplatableValue<std::string, Ts...> payload);
-  void play(Ts... x) override;
+  void play(const Ts&... x) override;
 
  protected:
   EspNowPubSub *parent_ = nullptr;

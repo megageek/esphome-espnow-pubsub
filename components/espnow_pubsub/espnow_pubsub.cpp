@@ -791,7 +791,7 @@ void EspnowPubSubPublishAction<Ts...>::set_payload(TemplatableValue<std::string,
 }
 
 template<typename... Ts>
-void EspnowPubSubPublishAction<Ts...>::play(Ts... x) {
+void EspnowPubSubPublishAction<Ts...>::play(const Ts&... x) {
   auto topic = this->topic_.value(x...);
   auto payload = this->payload_.value(x...);
   ESP_LOGD("espnow_pubsub", "[DIAG] EspnowPubSubPublishAction::play called. topic='%s', payload='%s'", topic.c_str(), payload.c_str());
