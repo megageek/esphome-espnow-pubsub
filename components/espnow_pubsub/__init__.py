@@ -67,6 +67,7 @@ CONFIG_SCHEMA = cv.Schema(
             cv.Required("payload"): cv.templatable(cv.string),
         }
     ),
+    synchronous=False,
 )
 async def espnow_pubsub_publish_action_to_code(config, action_id, template_arg, args):
     # Get the parent instance (the only espnow_pubsub component)
