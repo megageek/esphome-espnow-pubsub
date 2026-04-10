@@ -1,0 +1,45 @@
+esphome:
+  name: atom-lite-gateway
+  friendly_name: Atom Lite Gateway
+
+esp32:
+  board: m5stack-atom
+  framework:
+    type: esp-idf
+
+external_components:
+  - source: /home/supergeek/esphome-espnow-pubsub/components
+
+#wifi:
+#  ap: {}
+
+logger:
+  level: DEBUG
+
+espnow:
+  channel: 6
+
+espnow_pubsub:
+  id: gateway
+  send_times: 1
+  on_message:
+    - topic: "sensor/+/data"
+      then:
+        - logger.log: "Sensor data received!"
+    - topic: "test/#"
+      then:
+        - logger.log: "Test message received!"
+
+sensor:
+  - platform: espnow_pubsub
+    id: gateway
+    rssi:
+      name: "RSSI"
+    received_count:
+      name: "Received Count"
+
+text_sensor:
+  - platform: espnow_pubsub
+    id: gateway
+    status_text:
+      name: "Status"

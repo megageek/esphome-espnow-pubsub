@@ -26,16 +26,15 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
-    CONF_CHANNEL,
     CONF_TOPIC,
     CONF_TRIGGER_ID,
 )
-from esphome.components.esp32 import add_idf_sdkconfig_option
 from esphome.core import CORE
 
-## Only one instance of espnow_pubsub is allowed
-
 espnow_pubsub_ns = cg.esphome_ns.namespace("espnow_pubsub")
+
+DEPENDENCIES = ["espnow"]
+
 EspNowPubSub = espnow_pubsub_ns.class_("EspNowPubSub", cg.Component)
 # Triggers
 OnMessageTrigger = espnow_pubsub_ns.class_(
@@ -54,7 +53,6 @@ ON_MESSAGE_SCHEMA = automation.validate_automation(
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(EspNowPubSub),
-        cv.Required(CONF_CHANNEL): cv.int_range(1, 14),
         cv.Optional("send_times", default=1): cv.int_range(min=1, max=10),
         cv.Optional("on_message"): cv.ensure_list(ON_MESSAGE_SCHEMA),
     }
@@ -76,29 +74,16 @@ async def espnow_pubsub_publish_action_to_code(config, action_id, template_arg, 
     from esphome.const import CONF_ID
     # Find the main espnow_pubsub config block from CORE.config
     main_conf = None
-    for value in CORE.config.values():
-        # If value is a list (EList), iterate its items
-        if isinstance(value, list):
-            for conf in value:
-                if (
-                    isinstance(conf, dict)
-                    and conf.get(CONF_ID)
-                    and conf.get(CONF_CHANNEL)
-                    and conf.get(CONF_ID).type == EspNowPubSub
-                ):
-                    main_conf = conf
+    # Search for espnow_pubsub key specifically
+    if "espnow_pubsub" in CORE.config:
+        conf = CORE.config["espnow_pubsub"]
+        if isinstance(conf, list):
+            for c in conf:
+                if isinstance(c, dict) and c.get(CONF_ID):
+                    main_conf = c
                     break
-            if main_conf:
-                break
-        # If value is a dict, check directly
-        elif isinstance(value, dict):
-            if (
-                value.get(CONF_ID)
-                and value.get(CONF_CHANNEL)
-                and value.get(CONF_ID).type == EspNowPubSub
-            ):
-                main_conf = value
-                break
+        elif isinstance(conf, dict):
+            main_conf = conf
     if not main_conf:
         import esphome.config_validation as cv
         raise cv.Invalid("No espnow_pubsub instance found. Please declare one in your YAML config.")
@@ -114,7 +99,6 @@ async def to_code(config):
     cg.add_define("USE_ESPNOW_PUBSUB")
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
-    cg.add(var.set_channel(config[CONF_CHANNEL]))
     cg.add(var.set_send_times(config["send_times"]))
 
     for conf in config.get("on_message", []):
@@ -136,10 +120,5 @@ async def to_code(config):
                 [(cg.std_string, "topic"), (cg.std_string, "payload"), (cg.uint32, "sequence")],
                 conf,
             )
-
-    if CORE.using_esp_idf:
-        # Ensure WiFi driver is enabled for ESP-IDF
-        add_idf_sdkconfig_option("CONFIG_ESP_WIFI_ENABLED", True)
-        add_idf_sdkconfig_option("CONFIG_SW_COEXIST_ENABLE", True)
 
 # Sensor and text_sensor platform registration and codegen have been moved to sensor.py and text_sensor.py

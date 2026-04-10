@@ -1,0 +1,47 @@
+esphome:
+  name: espnow-standalone-node
+  friendly_name: ESPNow Standalone Node
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+external_components:
+  - source: /home/supergeek/esphome-espnow-pubsub/components
+
+wifi:
+  ap: {}
+
+logger:
+  level: DEBUG
+
+espnow:
+  channel: 6
+
+espnow_pubsub:
+  id: espnow_node
+  send_times: 3
+
+sensor:
+  - platform: espnow_pubsub
+    id: espnow_node
+    rssi:
+      name: "ESP-NOW RSSI"
+    sent_count:
+      name: "ESP-NOW Sent Count"
+
+text_sensor:
+  - platform: espnow_pubsub
+    id: espnow_node
+    status_text:
+      name: "ESP-NOW Status"
+
+button:
+  - platform: template
+    name: "Publish Sensor Data"
+    on_press:
+      then:
+        - espnow_pubsub.publish:
+            topic: "sensor/temp/data"
+            payload: "23.5"

@@ -1,0 +1,63 @@
+esphome:
+  name: espnow-wifi-node
+  friendly_name: ESPNow WiFi Node
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+external_components:
+  - source: /home/supergeek/esphome-espnow-pubsub/components
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "ESPNow Node Fallback"
+
+logger:
+  level: DEBUG
+
+espnow:
+  channel: 6
+
+espnow_pubsub:
+  id: espnow_node
+  send_times: 3
+
+sensor:
+  - platform: espnow_pubsub
+    id: espnow_node
+    rssi:
+      name: "ESP-NOW RSSI"
+    sent_count:
+      name: "ESP-NOW Sent Count"
+
+text_sensor:
+  - platform: espnow_pubsub
+    id: espnow_node
+    status_text:
+      name: "ESP-NOW Status"
+
+button:
+  - platform: template
+    name: "Publish Sensor Data"
+    on_press:
+      then:
+        - espnow_pubsub.publish:
+            topic: "sensor/temp/data"
+            payload: "23.5"
+
+script:
+  - id: periodic_publish
+    mode: single
+    then:
+      - espnow_pubsub.publish:
+          topic: "sensor/temp/data"
+          payload: !lambda |-
+            return "temp:" + to_string(id(sntp_time).now().timestamp % 100);
+
+time:
+  - platform: sntp
+    id: sntp_time

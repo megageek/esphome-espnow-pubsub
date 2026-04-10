@@ -1,0 +1,71 @@
+esphome:
+  name: atom-lite-s3-node
+  friendly_name: Atom Lite S3 Node
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+external_components:
+  - source: /home/supergeek/esphome-espnow-pubsub/components
+
+#wifi:
+#  ap: {}
+
+logger:
+  level: DEBUG
+
+espnow:
+  channel: 6
+
+espnow_pubsub:
+  id: node
+  send_times: 3
+
+sensor:
+  - platform: espnow_pubsub
+    id: node
+    rssi:
+      name: "RSSI"
+    sent_count:
+      name: "Sent Count"
+
+text_sensor:
+  - platform: espnow_pubsub
+    id: node
+    status_text:
+      name: "Status"
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO41
+      inverted: true
+    name: "Button"
+    filters:
+      - delayed_off: 10ms
+    on_press:
+      then:
+        - light.turn_on:
+            id: led
+            brightness: 100%
+            red: 0%
+            green: 100%
+            blue: 0%
+        - delay: 100ms
+        - light.turn_off: led
+        - espnow_pubsub.publish:
+            topic: "sensor/temp/data"
+            payload: "button_pressed"
+
+light:
+  - platform: esp32_rmt_led_strip
+    chipset: WS2812
+    pin: GPIO35
+    num_leds: 1
+    rgb_order: GRB
+    name: "LED"
+    id: led
+    default_transition_length: 0s
+    restore_mode: ALWAYS_OFF

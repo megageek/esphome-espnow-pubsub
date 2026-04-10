@@ -1,0 +1,87 @@
+esphome:
+  name: espnow-ethernet-device
+  friendly_name: ESPNow Ethernet Device
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+external_components:
+  - source: /home/supergeek/esphome-espnow-pubsub/components
+
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  power_pin: GPIO5
+  phy_addr: 0
+
+logger:
+  level: DEBUG
+
+espnow:
+  channel: 6
+
+espnow_pubsub:
+  id: espnow_test
+  send_times: 3
+  on_message:
+    - topic: "test/exact"
+      then:
+        - logger.log: "Received exact topic match!"
+    - topic: "sensor/+/data"
+      then:
+        - logger.log:
+            format: "Sensor data received"
+            args: []
+    - topic: "status/#"
+      then:
+        - logger.log: "Status update received"
+
+sensor:
+  - platform: espnow_pubsub
+    id: espnow_test
+    rssi:
+      name: "ESP-NOW RSSI"
+    sent_count:
+      name: "ESP-NOW Sent Count"
+      id: sent_count
+    received_count:
+      name: "ESP-NOW Received Count"
+      id: received_count
+
+text_sensor:
+  - platform: espnow_pubsub
+    id: espnow_test
+    status_text:
+      name: "ESP-NOW Status"
+
+button:
+  - platform: template
+    name: "Send Static Message"
+    on_press:
+      then:
+        - espnow_pubsub.publish:
+            topic: "test/button"
+            payload: "button pressed"
+
+  - platform: template
+    name: "Send Templated Message"
+    on_press:
+      then:
+        - espnow_pubsub.publish:
+            topic: "test/templated"
+            payload: !lambda |-
+              return "sent_count:" + to_string(id(sent_count).state);
+
+time:
+  - platform: sntp
+    id: sntp_time
+
+script:
+  - id: periodic_publish
+    then:
+      - espnow_pubsub.publish:
+          topic: "test/heartbeat"
+          payload: "periodic message"

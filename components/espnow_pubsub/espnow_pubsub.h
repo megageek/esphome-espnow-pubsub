@@ -20,7 +20,6 @@
 // SOFTWARE.
 
 #pragma once
-#include "esphome/core/defines.h"
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/log.h"
@@ -30,12 +29,12 @@
 #ifdef USE_TEXT_SENSOR
 #include "esphome/components/text_sensor/text_sensor.h"
 #endif
+#include "esphome/components/espnow/espnow_component.h"
 #include <vector>
 #include <functional>
 #include <string>
 #include <utility>
 #include <unordered_map>
-#include <esp_now.h>
 
 namespace esphome {
 namespace espnow_pubsub {
@@ -46,39 +45,31 @@ bool mqtt_topic_matches(const std::string &sub, const std::string &topic);
 
 class OnMessageTrigger; // Forward declaration
 
-class EspNowPubSub : public Component {
+class EspNowPubSub : public Component,
+                     public espnow::ESPNowBroadcastedHandler {
  public:
   using MessageCallback = std::function<void(const std::string &topic, const std::string &payload, uint32_t sequence)>;
 
   EspNowPubSub();
-  float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
+  float get_setup_priority() const override { return setup_priority::LATE; }
 
   void setup() override;
   void loop() override;
   void dump_config() override;
 
-  void set_channel(int channel) { channel_ = channel; }
+  // Handler interface for broadcasted messages
+  bool on_broadcasted(const espnow::ESPNowRecvInfo &info,
+                      const uint8_t *data, uint8_t size) override;
 
   // Only compile-time subscriptions via add_subscription
   void add_subscription(const std::string &topic, OnMessageTrigger *trigger);
 
   void publish(const std::string &topic, const std::string &payload);
   void receive_message(const std::string &topic, const std::string &payload, uint32_t sequence);
-  
-  void on_espnow_receive(const esp_now_recv_info *recv_info, const uint8_t *mac_addr, const uint8_t *data, int len);
-
-  // Re-initialize ESP-NOW after WiFi events
-  void reinit_espnow();
-  // Standalone ESP-NOW initialization (no WiFi component)
-  void init_espnow_standalone();
-  // Common ESP-NOW initialization
-  void init_espnow_common();
-  // ESP-NOW initialization after WiFi connects and channel is valid
-  void init_espnow_after_wifi(uint8_t wifi_channel);
 
   void set_send_times(int send_times) { send_times_ = send_times; }
-  
- // Sensor setters
+
+  // Sensor setters
 #ifdef USE_SENSOR
   void set_rssi_sensor(esphome::sensor::Sensor *sensor) { rssi_sensor_ = sensor; }
   void set_sent_count_sensor(esphome::sensor::Sensor *sensor) { sent_count_sensor_ = sensor; }
@@ -89,53 +80,38 @@ class EspNowPubSub : public Component {
 #endif
 
  protected:
-  int channel_{1};
   struct Subscription {
     std::string topic;
     MessageCallback callback;
   };
   std::vector<Subscription> subscriptions_;
-  // Track WiFi/ESP-NOW channel compatibility
-  bool wifi_channel_compatible_ = true;
-  std::string mac_address_;
-  bool espnow_init_ok_ = false;
-  int espnow_init_error_code_ = 0;
-  int wifi_component_channel_ = -1;
-  // Track if any subscriptions are present
-  bool has_subscriptions_ = false;
 
  private:
-  void update_mac_address();
-
-  // Sensor pointers
-  #ifdef USE_SENSOR
-  esphome::sensor::Sensor *rssi_sensor_{nullptr};
-  esphome::sensor::Sensor *sent_count_sensor_{nullptr};
-  esphome::sensor::Sensor *received_count_sensor_{nullptr};
-  #endif
-  #ifdef USE_TEXT_SENSOR
-  esphome::text_sensor::TextSensor *status_text_sensor_{nullptr};
-  #endif
-  // Sensor state
-  int last_rssi_ = 0;
-  
   std::string last_status_;
   uint32_t sent_count_ = 0;
   uint32_t received_count_ = 0;
-  // Structure to hold queued received messages
+
   struct QueuedMessage {
     std::string topic;
     std::string payload;
     uint32_t sequence;
   };
   std::vector<QueuedMessage> message_queue_;
-  // Maximum number of messages allowed in the queue (overflow handling)
   static constexpr size_t MAX_QUEUE_SIZE = 16;
 
   int send_times_{1};
-  // Track last seen sequence number per MAC to filter duplicates while
-  // permitting counter resets after a reboot or wrap-around.
   std::unordered_map<std::string, uint32_t> last_sequence_by_mac_;
+
+  // Sensor pointers
+#ifdef USE_SENSOR
+  esphome::sensor::Sensor *rssi_sensor_{nullptr};
+  esphome::sensor::Sensor *sent_count_sensor_{nullptr};
+  esphome::sensor::Sensor *received_count_sensor_{nullptr};
+#endif
+#ifdef USE_TEXT_SENSOR
+  esphome::text_sensor::TextSensor *status_text_sensor_{nullptr};
+#endif
+  int last_rssi_{0};
 };
 
 // OnMessageTrigger: Trigger for incoming messages on a topic
@@ -161,10 +137,3 @@ class EspnowPubSubPublishAction : public Action<Ts...> {
 
 }  // namespace espnow_pubsub
 }  // namespace esphome
-
-// Declare the global singleton pointer for ESP-NOW receive callback
-namespace esphome {
-namespace espnow_pubsub {
-  extern EspNowPubSub *global_espnow_pubsub_instance;
-}
-}

@@ -1,0 +1,53 @@
+esphome:
+  name: espnow-wifi-gateway
+  friendly_name: ESPNow WiFi Gateway
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+external_components:
+  - source: /home/supergeek/esphome-espnow-pubsub/components
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "ESPNow Gateway Fallback"
+
+logger:
+  level: DEBUG
+
+espnow:
+  channel: 6
+
+espnow_pubsub:
+  id: espnow_gateway
+  send_times: 1
+  on_message:
+    - topic: "sensor/+/data"
+      then:
+        - logger.log:
+            format: "Sensor data received on gateway"
+            args: []
+    - topic: "test/#"
+      then:
+        - logger.log:
+            format: "Test message received"
+            args: []
+
+sensor:
+  - platform: espnow_pubsub
+    id: espnow_gateway
+    rssi:
+      name: "ESP-NOW RSSI"
+    received_count:
+      name: "ESP-NOW Received Count"
+      id: received_count
+
+text_sensor:
+  - platform: espnow_pubsub
+    id: espnow_gateway
+    status_text:
+      name: "ESP-NOW Status"
