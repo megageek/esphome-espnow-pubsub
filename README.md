@@ -14,9 +14,10 @@ This component enables MQTT-like pub/sub messaging over ESP-NOW for ESP32 device
 
 ## Features
 
-- Robust ESP-NOW pub/sub messaging for ESP32
+- MQTT-like pub/sub messaging over ESP-NOW broadcast
 - Works with WiFi, Ethernet, or standalone (no network stack)
-- Automatic WiFi driver enablement for ESP-NOW under ESP-IDF/Ethernet
+- Uses ESPHome's native espnow component for reliable transport layer
+- Configurable `send_times` for message retransmission reliability
 - Broadcast-based (no peer MAC configuration required)
 - Topic-based subscription and message dispatch
 - MQTT-style wildcard topic matching (`+` and `#`)
@@ -35,9 +36,13 @@ This component enables MQTT-like pub/sub messaging over ESP-NOW for ESP32 device
 external_components:
   - source: github://megageek/esphome-espnow-pubsub/components/espnow_pubsub
 
+# Configure the native ESP-NOW component
+espnow:
+  channel: 6
+
 espnow_pubsub:
   id: my_pubsub
-  channel: 6
+  send_times: 3  # Number of retransmissions for reliability
   on_message:
     - topic: "test/topic"
       then:
@@ -64,6 +69,11 @@ text_sensor:
 - espnow_pubsub.publish:
     topic: "test/topic"
     payload: "hello world"
+
+# Or with a templated payload:
+- espnow_pubsub.publish:
+    topic: "sensor/temp"
+    payload: !lambda return "temp:" + to_string(id(my_sensor).state);
 ```
 
 ## Logging
@@ -75,7 +85,7 @@ text_sensor:
 
 ## Implementation Notes
 
-- All ESP-NOW communication is broadcast; no explicit peer registration is required.
+- All ESP-NOW communication is broadcast; no explicit peer registration is required (handled internally by native espnow component).
 - Message queue ensures safe handling outside interrupt context. If the queue is full (16 messages), the oldest message is dropped and a warning is logged.
 - Loop disables itself when no messages are pending for efficiency.
 - Subscriptions support MQTT-style wildcards: `+` (single-level) and `#` (multi-level, must be last token).
@@ -93,6 +103,7 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## Changelog
 
+- 2026-04-11: Migrate to ESPHome native espnow component; uses ESPNowBroadcastedHandler for receive; global_esp_now->send() for transmit; configurable send_times for reliability
 - 2025-07-26: Uploaded to GitHub
 - 2025-07-25: Robust support for ESP-NOW with WiFi, Ethernet, and standalone (no network stack) under both Arduino and ESP-IDF; automatic WiFi driver enablement for ESP-IDF/Ethernet; improved documentation and YAML examples; ESP-NOW error/status exposed as text sensor; sensor and logging improvements
 - 2025-07-22: MQTT-style wildcard topic matching implemented; documentation and implementation synchronized
