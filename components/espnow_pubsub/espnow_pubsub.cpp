@@ -97,7 +97,7 @@ void EspNowPubSub::setup() {
   espnow::global_esp_now->set_auto_add_peer(true);
 
   // Register for receiving broadcasts
-  espnow::global_esp_now->register_broadcasted_handler(this);
+  espnow::global_esp_now->register_broadcast_handler(this);
 
   last_status_ = "OK";
 #ifdef USE_TEXT_SENSOR
@@ -105,8 +105,8 @@ void EspNowPubSub::setup() {
 #endif
 }
 
-// on_broadcasted(): Called by native espnow component when a broadcast is received
-bool EspNowPubSub::on_broadcasted(const espnow::ESPNowRecvInfo &info,
+// on_broadcast(): Called by native espnow component when a broadcast is received
+bool EspNowPubSub::on_broadcast(const espnow::ESPNowRecvInfo &info,
                                   const uint8_t *data, uint8_t size) {
   ESP_LOGV(TAG, "[ON_BCAST] Received broadcast, size=%d", size);
   if (data == nullptr || size == 0) {

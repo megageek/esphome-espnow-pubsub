@@ -46,7 +46,7 @@ bool mqtt_topic_matches(const std::string &sub, const std::string &topic);
 class OnMessageTrigger; // Forward declaration
 
 class EspNowPubSub : public Component,
-                     public espnow::ESPNowBroadcastedHandler {
+                     public espnow::ESPNowBroadcastHandler {
  public:
   using MessageCallback = std::function<void(const std::string &topic, const std::string &payload, uint32_t sequence)>;
 
@@ -57,9 +57,9 @@ class EspNowPubSub : public Component,
   void loop() override;
   void dump_config() override;
 
-  // Handler interface for broadcasted messages
-  bool on_broadcasted(const espnow::ESPNowRecvInfo &info,
-                      const uint8_t *data, uint8_t size) override;
+  // Handler interface for broadcast messages
+  bool on_broadcast(const espnow::ESPNowRecvInfo &info,
+                       const uint8_t *data, uint8_t size) override;
 
   // Only compile-time subscriptions via add_subscription
   void add_subscription(const std::string &topic, OnMessageTrigger *trigger);
