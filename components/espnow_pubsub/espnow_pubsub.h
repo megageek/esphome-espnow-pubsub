@@ -59,7 +59,7 @@ class EspNowPubSub : public Component,
 
   // Handler interface for broadcast messages
   bool on_broadcast(const espnow::ESPNowRecvInfo &info,
-                       const uint8_t *data, uint8_t size) override;
+                       const uint8_t *data, uint16_t size) override;
 
   // Only compile-time subscriptions via add_subscription
   void add_subscription(const std::string &topic, OnMessageTrigger *trigger);

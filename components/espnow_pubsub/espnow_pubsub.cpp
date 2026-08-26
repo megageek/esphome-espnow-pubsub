@@ -107,7 +107,7 @@ void EspNowPubSub::setup() {
 
 // on_broadcast(): Called by native espnow component when a broadcast is received
 bool EspNowPubSub::on_broadcast(const espnow::ESPNowRecvInfo &info,
-                                  const uint8_t *data, uint8_t size) {
+                                  const uint8_t *data, uint16_t size) {
   ESP_LOGV(TAG, "[ON_BCAST] Received broadcast, size=%d", size);
   if (data == nullptr || size == 0) {
     ESP_LOGE(TAG, "[ON_BCAST] data is null or empty");
@@ -205,7 +205,7 @@ void EspNowPubSub::loop() {
     std::vector<QueuedMessage> local_queue;
     local_queue.swap(message_queue_);
     for (const auto &msg : local_queue) {
-      ESP_LOGD(TAG, "[LOOP] Processing: topic='%s', payload='%s', seq=%u", msg.topic.c_str(), msg.payload.c_str(), msg.sequence);
+      ESP_LOGD(TAG, "[LOOP] Processing: topic='%s', payload='%s', seq=%lu", msg.topic.c_str(), msg.payload.c_str(), msg.sequence);
       receive_message(msg.topic, msg.payload, msg.sequence);
     }
     pending_sensor_update = true;
